@@ -2,115 +2,80 @@ package ga
 
 import "math/rand"
 
-// Chromosome Representation
-type IntVecChromosome struct {
-	age     int
-	value   []int
-	fitness float64
-}
-
-//BitStrChromosome is 0-1 represented
-type BitStrChromosome struct{ IntVecChromosome }
-
-// OrderIntChromosome for TSP
-type OrderIntChromosome struct{ IntVecChromosome }
-
-func (vc *IntVecChromosome) Copy() IntVecChromValuer {
-	nvc := *vc
-	return &nvc
-}
-
-func (vc IntVecChromosome) Value() []int {
-	return vc.value
-}
-
-func (vc IntVecChromosome) Age() int {
-	return vc.age
-}
-
-func (vc IntVecChromosome) Fitness() float64 {
-	return vc.fitness
-}
-
-func (vc *IntVecChromosome) SetValue(sl []int) {
-	vc.value = sl
-}
-
-func (vc *IntVecChromosome) SetFitness(f float64) {
-	vc.fitness = f
-}
-
-func (vc *IntVecChromosome) SetAge(n int) {
-	vc.age = n
-}
-
-type IntVecChromValuer interface {
-	Value() []int
-	//Fitness() float64
-	//Age() int
-	SetValue([]int)
-	//SetFitness(float64)
-	//SetAge(int)
-	Copy() IntVecChromValuer
-}
-
-type IntVecChromUber interface {
-	IntVecChromValuer
-	ChromFitnessTester
-	ChromAger
-}
-
-type ChromFitnessTester interface {
+type Chromosome interface {
+	Value() interface{}
+	Copy() Chromosome
+	Age() int
+	SetAge(int)
 	Fitness() float64
 	SetFitness(float64)
 }
 
-type ChromAger interface {
-	Age() int
-	SetAge(int)
+type emptyChrom struct {
+	age     int
+	fitness float64
 }
 
-//
-func NewBitStrChromosome(n int) *BitStrChromosome {
-	intSl := make([]int, n)
-	for i := 0; i < n; i++ {
-		if rand.Float32() >= 0.5 {
-			intSl[i] = 1
-		} else {
-			intSl[i] = 0
+func (c emptyChrom) Age() int {
+	return c.age
+}
+
+func (c *emptyChrom) SetAge(a int) {
+	c.age = a
+}
+
+func (c emptyChrom) Fitness() float64 {
+	return c.fitness
+}
+
+func (c *emptyChrom) SetFitness(f float64) {
+	c.fitness = f
+}
+
+type intChrom struct {
+	emptyChrom
+	value []int
+}
+
+func (ic intChrom) Value() interface{} {
+	return ic.value
+}
+
+func (ic intChrom) Copy() Chromosome {
+	nic := intChrom{}
+	nic.age = ic.age
+	nic.fitness = ic.fitness
+
+	ns := make([]int, len(ic.value))
+	copy(ns, ic.value)
+	nic.value = ns
+
+	return &nic
+}
+
+func newBinChrom(l int) Chromosome {
+	ic := intChrom{}
+	ic.value = make([]int, l)
+	for i := range ic.value {
+		if rand.Float32() > 0.5 {
+			ic.value[i] = 1
 		}
 	}
-
-	chrom := BitStrChromosome{}
-	chrom.value = intSl
-	return &chrom
+	return &ic
 }
 
-func (bc *BitStrChromosome) Copy() IntVecChromValuer {
-	nbc := new(BitStrChromosome)
-	nbc.IntVecChromosome = *bc.IntVecChromosome.Copy().(*IntVecChromosome)
-	return nbc
-}
-
-//
-func NewIntVecChromosome(n, min, max int) *IntVecChromosome {
-	intSl := make([]int, n)
-	for i := 0; i < n; i++ {
-		intSl[i] = rand.Intn(max - min + 1)
-		intSl[i] += min
+// max inclusive
+func newIntChrom(l, max int) Chromosome {
+	ic := intChrom{}
+	ic.value = make([]int, l)
+	for i := range ic.value {
+		ic.value[i] = rand.Intn(max + 1)
 	}
-	chrom := IntVecChromosome{}
-	chrom.value = intSl
-	return &chrom
+	return &ic
 }
 
-//
-func NewOrderIntChromosome(min, max int) *OrderIntChromosome {
-	intSl := rand.Perm(max - min + 1)
-	for i := range intSl {
-		intSl[i] += min
-	}
-	chrom := OrderIntChromosome{}
-	chrom.value = intSl
-	return &chrom
+func newOrderedIntChrom(l int) Chromosome {
+	ic := intChrom{}
+	ic.value = rand.Perm(l)
+	return &ic
 }
